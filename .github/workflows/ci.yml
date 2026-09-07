@@ -1,0 +1,84 @@
+name: NeuroStage CI
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  # ─── Python Tests, Linting & Type Validation ───────────────────
+  backend-ci:
+    name: Backend CI (Python 3.11)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: "pip"
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -e ".[backend,dev]"
+
+      - name: Lint with ruff
+        run: ruff check neurostage/ backend/ tests/ train.py evaluate.py compress.py
+
+      - name: Run unit and integration tests
+        run: pytest tests/ -v --tb=short
+
+  # ─── Frontend Lint & Build Validation ─────────────────────────
+  frontend-ci:
+    name: Frontend CI (Next.js & React 19)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run ESLint
+        run: npm run lint
+
+      - name: Build production bundle
+        run: npm run build
+        env:
+          NEXT_PUBLIC_API_URL: http://localhost:8000
+
+  # ─── Security: Commit & Secret Leak Prevention ─────────────────
+  security-audit:
+    name: Secret & Credential Scan
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Verify no .env or private key files in repository
+        run: |
+          echo "Scanning working tree and git tracking for sensitive files..."
+          if git ls-files | grep -E '^(\.env|\.env\..*|.*\.pem|.*\.key|.*\.db)$' | grep -v '\.env\.example'; then
+            echo "::error::Sensitive files detected in Git tracking!"
+            exit 1
+          fi
+          echo "No sensitive environment or credential files detected in Git tree."

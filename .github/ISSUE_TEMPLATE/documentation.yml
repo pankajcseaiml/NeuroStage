@@ -1,0 +1,21 @@
+name: 📝 Documentation Issue
+description: Report missing, unclear, or incorrect documentation in NeuroStage.
+labels: ["documentation"]
+body:
+  - type: textarea
+    id: issue
+    attributes:
+      label: Documentation Problem
+      description: Where is the documentation unclear, outdated, or missing?
+      placeholder: In file docs/ARCHITECTURE.md, section...
+    validations:
+      required: true
+
+  - type: textarea
+    id: suggestion
+    attributes:
+      label: Suggested Improvement
+      description: How should the documentation be updated?
+      placeholder: Update the section to state...
+    validations:
+      required: false

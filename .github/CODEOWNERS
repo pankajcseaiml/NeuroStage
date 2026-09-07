@@ -1,0 +1,15 @@
+# Global code owners
+* @pankajcseaiml
+
+# Machine learning core
+/neurostage/ @pankajcseaiml
+/configs/ @pankajcseaiml
+
+# Backend service
+/backend/ @pankajcseaiml
+
+# Frontend application
+/frontend/ @pankajcseaiml
+
+# CI/CD and security
+/.github/ @pankajcseaiml
