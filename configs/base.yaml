@@ -1,0 +1,83 @@
+# neurostage/configs/base.yaml
+# ============================================================
+# Base configuration for NeuroStage.
+# All CLI overrides use dotted key syntax: key.subkey=value
+# ============================================================
+
+experiment:
+  name: "neurostage_base"
+  seed: 42
+  n_folds: 5                # Subject-independent k-fold
+  log_dir: "runs/"
+  mlflow_tracking_uri: "http://localhost:5000"
+
+data:
+  dataset: "sleep-edf"       # Options: sleep-edf | isruc
+  raw_dir: "data/raw/"
+  processed_dir: "data/processed/"
+  manifest_path: "data/processed/manifest.json"
+  n_subjects: null           # null = use all subjects
+  # Preprocessing
+  sfreq: 100                 # Resample to 100 Hz
+  bandpass_low: 0.3
+  bandpass_high: 35.0
+  epoch_sec: 30              # AASM standard
+  context_epochs: 20         # Transformer context window (≈10 min)
+  # Sleep stage mapping to integer labels
+  stage_map:
+    W: 0
+    N1: 1
+    N2: 2
+    N3: 3
+    R: 4
+
+model:
+  variant: "neurostage"      # Options: cnn_only | neurostage | teacher
+  # CNN block
+  cnn:
+    in_channels: 1
+    base_channels: 64
+    kernel_sizes: [50, 25, 10]   # Multi-resolution
+    use_depthwise_separable: true
+    dropout: 0.25
+    embedding_dim: 128
+  # Transformer block (ignored in cnn_only variant)
+  transformer:
+    n_layers: 2              # Ablation: 1 | 2 | 4
+    n_heads: 4
+    d_model: 128
+    d_ff: 256
+    dropout: 0.1
+    max_seq_len: 25          # Max context epochs (slightly > context_epochs)
+  # Classification head
+  n_classes: 5
+  head_dropout: 0.25
+
+training:
+  epochs: 50
+  batch_size: 32             # Sequences of context_epochs per batch item
+  optimizer: "adam"
+  lr: 1.0e-3
+  weight_decay: 1.0e-4
+  lr_scheduler: "cosine"     # Options: cosine | step | none
+  lr_warmup_epochs: 5
+  use_class_weights: true    # Handles N1 imbalance
+  patience: 10               # Early stopping
+
+compression:
+  pruning:
+    amount: 0.3              # Fraction of weights to prune (magnitude-based)
+    n_finetune_epochs: 10
+  quantization:
+    backend: "qnnpack"       # Use fbgemm on x86
+  distillation:
+    teacher_checkpoint: null # Path to teacher .pt — set before running
+    temperature: 4.0
+    alpha: 0.7               # Weight for KD loss (1-alpha for CE loss)
+    n_epochs: 30
+
+evaluation:
+  output_dir: "results/"
+  save_confusion_matrix: true
+  benchmark_n_warmup: 50
+  benchmark_n_runs: 200

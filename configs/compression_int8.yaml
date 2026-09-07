@@ -1,0 +1,5 @@
+experiment:
+  name: "compression_int8"
+compression:
+  quantization:
+    backend: "qnnpack"

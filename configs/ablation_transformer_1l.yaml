@@ -1,0 +1,5 @@
+experiment:
+  name: "ablation_transformer_1l"
+model:
+  transformer:
+    n_layers: 1

@@ -1,0 +1,6 @@
+experiment:
+  name: "ablation_cnn_only"
+model:
+  variant: "cnn_only"
+  transformer:
+    n_layers: 0
