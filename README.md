@@ -188,8 +188,11 @@ NeuroStage/
 │   └── teacher.yaml                # Teacher model config for Knowledge Distillation
 ├── docs/                           # Technical documentation suite
 │   ├── API.md                      # REST API endpoints & schema documentation
-│   ├── ARCHITECTURE.md             # In-depth architectural analysis
-│   └── DEPLOYMENT.md               # Production deployment and container guidance
+│   ├── ARCHITECTURE.md             # Complete UML diagrams & system architecture
+│   ├── DEPLOYMENT.md               # Production deployment and container guidance
+│   ├── PANEL_PRESENTATION_GUIDE.md # Technical defense guide & panel Q&A playbook
+│   ├── PROJECT_TECHNICAL_ARCHITECTURE.md # Stack audit and system specification
+│   └── SYNOPSIS.md                 # Department Capstone Phase 1 Synopsis
 ├── frontend/                       # Next.js 16 + React 19 web dashboard
 │   ├── app/                        # Next.js App Router pages
 │   │   ├── attention/              # Transformer attention weights explorer
