@@ -5,7 +5,7 @@ from __future__ import annotations
 from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 
-from backend.auth.router import get_current_user
+from backend.auth.router import get_current_user, get_current_user_optional
 from backend.db.database import get_db
 from backend.db.models import Experiment, User
 
@@ -50,7 +50,7 @@ BASELINE_BENCHMARKS = [
 
 @router.get("/experiments")
 def list_experiments(
-    current_user: User = Depends(get_current_user),
+    current_user: User | None = Depends(get_current_user_optional),
     db: Session = Depends(get_db),
     limit: int = 50,
     offset: int = 0,
@@ -80,7 +80,7 @@ def list_experiments(
 @router.get("/experiments/{experiment_id}")
 def get_experiment(
     experiment_id: str,
-    current_user: User = Depends(get_current_user),
+    current_user: User | None = Depends(get_current_user_optional),
     db: Session = Depends(get_db),
 ):
     """Get full metrics for one experiment including per-class F1 and confusion matrix."""

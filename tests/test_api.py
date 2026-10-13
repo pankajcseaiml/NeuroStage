@@ -33,5 +33,5 @@ def test_health_endpoint(client):
 
 def test_protected_route_without_token(client):
     # Attempting to access protected endpoints without auth returns 401
-    response = client.get("/experiments")
+    response = client.get("/auth/me")
     assert response.status_code in (401, 403)

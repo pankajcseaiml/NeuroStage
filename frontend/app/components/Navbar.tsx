@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useAuth } from "../context/AuthContext";
+import { useRecording } from "../context/RecordingContext";
 
 const navLinks = [
   { href: "/", label: "Overview" },
@@ -16,6 +17,7 @@ const navLinks = [
 export default function Navbar() {
   const pathname = usePathname();
   const { user, isLoading, logout } = useAuth();
+  const { activeRecordingId, activeRecordingFilename } = useRecording();
 
   return (
     <nav
@@ -63,14 +65,19 @@ export default function Navbar() {
           </span>
         </Link>
 
-        {/* Center Nav Links (Original exact items) */}
-        <div style={{ display: "flex", gap: 6 }}>
+        {/* Center Nav Links with active recording persistence */}
+        <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
           {navLinks.map((link) => {
             const isActive = pathname === link.href;
+            const targetHref =
+              activeRecordingId && link.href !== "/" && link.href !== "/predict"
+                ? `${link.href}?id=${activeRecordingId}`
+                : link.href;
+
             return (
               <Link
                 key={link.href}
-                href={link.href}
+                href={targetHref}
                 className={`nav-link ${isActive ? "active" : ""}`}
               >
                 {link.label}
@@ -79,8 +86,36 @@ export default function Navbar() {
           })}
         </div>
 
-        {/* Right Section: Auth & Badge */}
-        <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+        {/* Right Section: Auth & Active PSG Badge */}
+        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+          {activeRecordingId && (
+            <Link
+              href={`/hypnogram?id=${activeRecordingId}`}
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: 6,
+                padding: "4px 10px",
+                borderRadius: 8,
+                background: "rgba(37, 99, 235, 0.08)",
+                border: "1px solid rgba(37, 99, 235, 0.2)",
+                fontSize: "0.75rem",
+                color: "#1D4ED8",
+                fontWeight: 700,
+                textDecoration: "none",
+                maxWidth: 180,
+                overflow: "hidden",
+                textOverflow: "ellipsis",
+                whiteSpace: "nowrap",
+              }}
+              title={`Active Study: ${activeRecordingFilename || activeRecordingId}`}
+            >
+              <span>📂</span>
+              <span style={{ overflow: "hidden", textOverflow: "ellipsis" }}>
+                {activeRecordingFilename || activeRecordingId.slice(0, 8) + "…"}
+              </span>
+            </Link>
+          )}
           {isLoading ? (
             <div
               style={{

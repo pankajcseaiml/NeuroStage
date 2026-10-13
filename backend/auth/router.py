@@ -52,6 +52,9 @@ def login(form: OAuth2PasswordRequestForm = Depends(), db: Session = Depends(get
     return TokenResponse(access_token=token)
 
 
+oauth2_scheme_optional = OAuth2PasswordBearer(tokenUrl="/auth/login", auto_error=False)
+
+
 async def get_current_user(
     token: str = Depends(oauth2_scheme), db: Session = Depends(get_db)
 ) -> User:
@@ -63,6 +66,18 @@ async def get_current_user(
     if not user:
         raise HTTPException(status_code=401, detail="User not found.")
     return user
+
+
+async def get_current_user_optional(
+    token: str | None = Depends(oauth2_scheme_optional), db: Session = Depends(get_db)
+) -> User | None:
+    if not token:
+        return None
+    try:
+        user_id = decode_token(token)
+        return db.get(User, user_id)
+    except Exception:
+        return None
 
 
 @router.get("/me", response_model=UserResponse)

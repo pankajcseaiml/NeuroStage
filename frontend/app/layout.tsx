@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Inter, JetBrains_Mono } from "next/font/google";
 import "./globals.css";
 import { AuthProvider } from "./context/AuthContext";
+import { RecordingProvider } from "./context/RecordingContext";
 import Navbar from "./components/Navbar";
 
 const inter = Inter({ subsets: ["latin"], variable: "--font-inter" });
@@ -23,11 +24,13 @@ export default function RootLayout({
     <html lang="en" className={`${inter.variable} ${mono.variable}`}>
       <body>
         <AuthProvider>
-          <Navbar />
-          {/* Main content */}
-          <main style={{ minHeight: "calc(100vh - 64px)" }}>
-            {children}
-          </main>
+          <RecordingProvider>
+            <Navbar />
+            {/* Main content */}
+            <main style={{ minHeight: "calc(100vh - 64px)" }}>
+              {children}
+            </main>
+          </RecordingProvider>
         </AuthProvider>
 
         {/* Footer */}

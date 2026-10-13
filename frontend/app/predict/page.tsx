@@ -1,17 +1,20 @@
 "use client";
 
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import Link from "next/link";
 import { useAuth } from "../context/AuthContext";
-import { API_URL } from "../lib/api";
+import { useRecording } from "../context/RecordingContext";
+import { API_URL, getFriendlyErrorMessage } from "../lib/api";
 
 type Status = "idle" | "uploading" | "processing" | "done" | "error";
 
 export default function PredictPage() {
   const { token: authJwt, user, login } = useAuth();
+  const { setActiveRecording } = useRecording();
   const [status, setStatus] = useState<Status>("idle");
   const [recordingId, setRecordingId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [backendOnline, setBackendOnline] = useState<boolean | null>(null);
   const [fileName, setFileName] = useState<string | null>(null);
   const [token, setToken] = useState<string>("");
   const fileRef = useRef<HTMLInputElement>(null);
@@ -37,8 +40,8 @@ export default function PredictPage() {
         throw new Error(res.error || "Failed to log in demo user.");
       }
     } catch (e: unknown) {
-      const msg = e instanceof Error ? e.message : "Failed to generate token.";
-      setError("Auto-token generation error: " + msg);
+      const msg = getFriendlyErrorMessage(e, "Failed to generate demo token.");
+      setError(msg);
     } finally {
       setGeneratingToken(false);
     }
@@ -50,7 +53,8 @@ export default function PredictPage() {
   };
 
   const handleUpload = async () => {
-    if (!fileRef.current?.files?.[0]) {
+    const selectedFile = fileRef.current?.files?.[0];
+    if (!selectedFile) {
       setError("Please select an EDF file.");
       return;
     }
@@ -64,7 +68,7 @@ export default function PredictPage() {
 
     try {
       const formData = new FormData();
-      formData.append("file", fileRef.current.files[0]);
+      formData.append("file", selectedFile);
 
       const res = await fetch(`${API_URL}/eeg/upload`, {
         method: "POST",
@@ -79,6 +83,7 @@ export default function PredictPage() {
 
       const data = await res.json();
       setRecordingId(data.recording_id);
+      setActiveRecording(data.recording_id, selectedFile.name);
       setUploadProgress(60);
 
       // Trigger prediction
@@ -92,43 +97,97 @@ export default function PredictPage() {
         throw new Error(predData.detail || "Inference failed.");
       }
 
+      const predJson = await predRes.json();
       setUploadProgress(100);
+
+      if (predJson.status === "done") {
+        setStatus("done");
+        fetchRecentRecordings();
+        return;
+      }
+
       setStatus("processing");
 
       // Poll for completion
-      await pollForCompletion(data.recording_id);
+      await pollForCompletion(data.recording_id, selectedFile.name);
     } catch (e: unknown) {
-      const msg = e instanceof Error ? e.message : "An error occurred during upload.";
+      const msg = getFriendlyErrorMessage(e, "An error occurred during upload.");
       setError(msg);
       setStatus("error");
       setUploadProgress(0);
     }
   };
 
-  const pollForCompletion = async (rid: string) => {
-    let attempts = 0;
-    const maxAttempts = 60;
-    while (attempts < maxAttempts) {
-      await new Promise((r) => setTimeout(r, 3000));
+  const [recentRecordings, setRecentRecordings] = useState<
+    Array<{ id: string; filename: string; status: string; uploaded_at: string; n_epochs: number }>
+  >([]);
+  const [elapsedSeconds, setElapsedSeconds] = useState(0);
+
+  const fetchRecentRecordings = async () => {
+    try {
+      const res = await fetch(`${API_URL}/recordings`, {
+        headers: activeToken ? { Authorization: `Bearer ${activeToken}` } : {},
+      });
+      if (res.ok) {
+        const d = await res.json();
+        setRecentRecordings(d.recordings || []);
+      }
+    } catch {}
+  };
+
+  useEffect(() => {
+    fetchRecentRecordings();
+    const checkBackend = async () => {
       try {
-        const res = await fetch(`${API_URL}/hypnogram/${rid}`, {
-          headers: { Authorization: `Bearer ${activeToken}` },
-        });
-        const data = await res.json();
-        if (data.status === "done") {
-          setStatus("done");
-          return;
-        }
-        if (data.status === "error") {
-          setStatus("error");
-          setError("Model inference failed on the server.");
-          return;
-        }
-      } catch {}
-      attempts++;
+        const res = await fetch(`${API_URL}/health`);
+        setBackendOnline(res.ok);
+      } catch {
+        setBackendOnline(false);
+      }
+    };
+    checkBackend();
+    const interval = setInterval(checkBackend, 15000);
+    return () => clearInterval(interval);
+  }, [activeToken]);
+
+  const pollForCompletion = async (rid: string, fname?: string) => {
+    let attempts = 0;
+    const maxAttempts = 120;
+    setElapsedSeconds(0);
+    const intervalTimer = setInterval(() => {
+      setElapsedSeconds((s) => s + 1);
+    }, 1000);
+
+    try {
+      while (attempts < maxAttempts) {
+        await new Promise((r) => setTimeout(r, 1500));
+        try {
+          const res = await fetch(`${API_URL}/hypnogram/${rid}`, {
+            headers: activeToken ? { Authorization: `Bearer ${activeToken}` } : {},
+          });
+          const data = await res.json();
+          if (data.status === "done") {
+            clearInterval(intervalTimer);
+            setStatus("done");
+            setActiveRecording(rid, fname || fileName || undefined);
+            fetchRecentRecordings();
+            return;
+          }
+          if (data.status === "error") {
+            clearInterval(intervalTimer);
+            setStatus("error");
+            setError("Model inference failed on the server.");
+            return;
+          }
+        } catch {}
+        attempts++;
+      }
+      clearInterval(intervalTimer);
+      setStatus("error");
+      setError("Timed out waiting for inference to complete.");
+    } finally {
+      clearInterval(intervalTimer);
     }
-    setStatus("error");
-    setError("Timed out waiting for inference to complete.");
   };
 
   return (
@@ -149,9 +208,62 @@ export default function PredictPage() {
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 24 }}>
         {/* Upload panel */}
         <div className="glass-card" style={{ padding: 32 }}>
-          <h2 style={{ fontSize: "1.1rem", fontWeight: 700, marginBottom: 20, color: "var(--text-primary)" }}>
-            📁 Upload EDF File
-          </h2>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20 }}>
+            <h2 style={{ fontSize: "1.1rem", fontWeight: 700, margin: 0, color: "var(--text-primary)" }}>
+              📁 Upload EDF File
+            </h2>
+            {backendOnline !== null && (
+              <span
+                style={{
+                  fontSize: "0.72rem",
+                  fontWeight: 700,
+                  padding: "3px 8px",
+                  borderRadius: 6,
+                  display: "inline-flex",
+                  alignItems: "center",
+                  gap: 5,
+                  background: backendOnline ? "rgba(5, 150, 105, 0.1)" : "rgba(225, 29, 72, 0.1)",
+                  color: backendOnline ? "#065F46" : "#BE123C",
+                  border: `1px solid ${backendOnline ? "rgba(5, 150, 105, 0.25)" : "rgba(225, 29, 72, 0.25)"}`,
+                }}
+              >
+                <span style={{ width: 6, height: 6, borderRadius: "50%", background: backendOnline ? "#059669" : "#E11D48" }} />
+                {backendOnline ? "API Online" : "API Offline"}
+              </span>
+            )}
+          </div>
+
+          {backendOnline === false && (
+            <div
+              style={{
+                marginBottom: 18,
+                padding: "12px 14px",
+                background: "rgba(225, 29, 72, 0.08)",
+                border: "1px solid rgba(225, 29, 72, 0.3)",
+                borderRadius: 10,
+                fontSize: "0.82rem",
+                color: "#BE123C",
+                lineHeight: 1.5,
+              }}
+            >
+              <div style={{ fontWeight: 700, marginBottom: 4 }}>⚠️ Backend API server not detected</div>
+              <div>
+                The frontend cannot reach <code>{API_URL}</code>. Start the backend in your terminal with:
+              </div>
+              <pre
+                style={{
+                  marginTop: 6,
+                  padding: "6px 10px",
+                  background: "rgba(0,0,0,0.06)",
+                  borderRadius: 6,
+                  fontSize: "0.78rem",
+                  fontFamily: "monospace",
+                }}
+              >
+                uvicorn backend.main:app --port 8000
+              </pre>
+            </div>
+          )}
 
           {/* User Auth Banner */}
           <div style={{ marginBottom: 20 }}>
@@ -324,6 +436,30 @@ export default function PredictPage() {
             </div>
           )}
 
+          {status === "processing" && (
+            <div style={{
+              padding: "12px 16px",
+              borderRadius: 10,
+              background: "rgba(37, 99, 235, 0.08)",
+              border: "1px solid rgba(37, 99, 235, 0.25)",
+              color: "#1D4ED8",
+              fontSize: "0.85rem",
+              fontWeight: 600,
+              marginBottom: 16,
+              display: "flex",
+              alignItems: "center",
+              gap: 10,
+            }}>
+              <span style={{ fontSize: "1.2rem" }}>⏳</span>
+              <div>
+                <div>Running PyTorch CNN-Transformer ({elapsedSeconds}s elapsed)</div>
+                <div style={{ fontSize: "0.75rem", fontWeight: 400, color: "var(--text-secondary)" }}>
+                  Filtering 0.3–35 Hz FIR, segmenting 30s epochs, batching self-attention...
+                </div>
+              </div>
+            </div>
+          )}
+
           <button
             className="btn-coral"
             onClick={handleUpload}
@@ -336,7 +472,11 @@ export default function PredictPage() {
               opacity: status === "uploading" || status === "processing" ? 0.6 : 1,
             }}
           >
-            {status === "uploading" ? "⏳ Uploading EDF..." : status === "processing" ? "🧠 Processing Sleep Stages..." : "🚀 Upload & Run Inference"}
+            {status === "uploading"
+              ? "⏳ Uploading EDF..."
+              : status === "processing"
+              ? `🧠 Inferring Stages... (${elapsedSeconds}s)`
+              : "🚀 Upload & Run Inference"}
           </button>
         </div>
 
@@ -348,11 +488,11 @@ export default function PredictPage() {
               🔬 What happens after upload?
             </h3>
             {[
-              ["1. Preprocessing", "Band-pass filter (0.3–35 Hz), z-score normalize, segment into 30s epochs"],
-              ["2. CNN Feature Extraction", "Depthwise-separable 1D-CNN extracts embeddings per epoch"],
-              ["3. Transformer Encoding", "2-layer, 4-head self-attention over 20-epoch context windows"],
-              ["4. Classification", "Dense + softmax → 5-class prediction per epoch"],
-              ["5. Hypnogram", "Full-night prediction sequence stored and returned"],
+              ["1. Vectorized Preprocessing", "Band-pass filter (0.3–35 Hz), z-score normalize, vector slice into 30s epochs"],
+              ["2. CNN Feature Extraction", "Depthwise-separable 1D-CNN extracts embeddings per epoch (75% FLOP reduction)"],
+              ["3. Transformer Encoding", "2-layer, 4-head self-attention over 20-epoch context windows (~10 min sleep dynamics)"],
+              ["4. Classification", "Dense + softmax → 5-class sleep stage prediction (W, N1, N2, N3, REM)"],
+              ["5. Hypnogram & Attention", "Full-night sequence + self-attention weights stored in PostgreSQL"],
             ].map(([title, desc]) => (
               <div key={title} style={{ marginBottom: 14 }}>
                 <div style={{ fontWeight: 700, fontSize: "0.82rem", color: "var(--brand-coral)" }}>{title}</div>
@@ -365,15 +505,15 @@ export default function PredictPage() {
           {status === "done" && recordingId && (
             <div className="glass-card" style={{ padding: 24 }}>
               <h3 style={{ fontSize: "0.95rem", fontWeight: 700, marginBottom: 16, color: "var(--text-primary)" }}>
-                📊 View Results
+                📊 View Results for This Upload
               </h3>
               <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-                <a
+                <Link
                   href={`/hypnogram?id=${recordingId}`}
                   style={{
                     display: "flex",
                     alignItems: "center",
-                    gap: 10,
+                    justifyContent: "space-between",
                     padding: "14px 16px",
                     borderRadius: 10,
                     background: "rgba(37, 99, 235, 0.08)",
@@ -385,14 +525,15 @@ export default function PredictPage() {
                     transition: "all 0.2s",
                   }}
                 >
-                  📈 View Hypnogram
-                </a>
-                <a
+                  <span>📈 View Hypnogram</span>
+                  <span style={{ fontSize: "0.75rem", background: "#2563EB", color: "#FFF", padding: "2px 8px", borderRadius: 4 }}>Full Night Sequence →</span>
+                </Link>
+                <Link
                   href={`/attention?id=${recordingId}`}
                   style={{
                     display: "flex",
                     alignItems: "center",
-                    gap: 10,
+                    justifyContent: "space-between",
                     padding: "14px 16px",
                     borderRadius: 10,
                     background: "rgba(124, 58, 237, 0.08)",
@@ -404,13 +545,111 @@ export default function PredictPage() {
                     transition: "all 0.2s",
                   }}
                 >
-                  👁️ View Attention Map
-                </a>
+                  <span>👁️ View Attention Map</span>
+                  <span style={{ fontSize: "0.75rem", background: "#7C3AED", color: "#FFF", padding: "2px 8px", borderRadius: 4 }}>Context Weights →</span>
+                </Link>
               </div>
             </div>
           )}
         </div>
       </div>
+
+      {/* Available Recordings History Launcher */}
+      {recentRecordings.length > 0 && (
+        <div className="glass-card" style={{ marginTop: 36, padding: 28 }}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
+            <div>
+              <h2 style={{ fontSize: "1.15rem", fontWeight: 800, color: "var(--text-primary)" }}>
+                📂 Available Processed Recordings
+              </h2>
+              <p style={{ fontSize: "0.82rem", color: "var(--text-secondary)", marginTop: 2 }}>
+                Preloaded overnight sleep studies ready for instant panel presentation. No re-upload required.
+              </p>
+            </div>
+            <span style={{ fontSize: "0.75rem", color: "var(--text-muted)", fontWeight: 600 }}>
+              {recentRecordings.length} recordings stored
+            </span>
+          </div>
+
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))", gap: 14 }}>
+            {recentRecordings.map((rec) => (
+              <div
+                key={rec.id}
+                style={{
+                  padding: 16,
+                  borderRadius: 12,
+                  background: "var(--card-bg, #FFFFFF)",
+                  border: "1px solid var(--border)",
+                  boxShadow: "0 2px 8px rgba(0,0,0,0.03)",
+                  display: "flex",
+                  flexDirection: "column",
+                  justifyContent: "space-between",
+                }}
+              >
+                <div>
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 6 }}>
+                    <span style={{ fontWeight: 700, fontSize: "0.88rem", color: "var(--text-primary)" }}>
+                      {rec.filename}
+                    </span>
+                    <span
+                      style={{
+                        fontSize: "0.68rem",
+                        fontWeight: 700,
+                        padding: "2px 6px",
+                        borderRadius: 4,
+                        background: rec.status === "done" ? "rgba(5, 150, 105, 0.1)" : "rgba(217, 119, 6, 0.1)",
+                        color: rec.status === "done" ? "#065F46" : "#92400E",
+                      }}
+                    >
+                      {rec.status.toUpperCase()}
+                    </span>
+                  </div>
+                  <div style={{ fontSize: "0.74rem", color: "var(--text-muted)", marginBottom: 12 }}>
+                    ID: <code>{rec.id.slice(0, 12)}…</code> · {rec.n_epochs > 0 ? `${rec.n_epochs} epochs` : "0 epochs"}
+                  </div>
+                </div>
+
+                <div style={{ display: "flex", gap: 8 }}>
+                  <Link
+                    href={`/hypnogram?id=${rec.id}`}
+                    style={{
+                      flex: 1,
+                      textAlign: "center",
+                      padding: "6px 10px",
+                      borderRadius: 6,
+                      background: "rgba(37, 99, 235, 0.08)",
+                      border: "1px solid rgba(37, 99, 235, 0.2)",
+                      color: "#1D4ED8",
+                      fontSize: "0.75rem",
+                      fontWeight: 700,
+                      textDecoration: "none",
+                    }}
+                  >
+                    📈 Hypnogram
+                  </Link>
+                  <Link
+                    href={`/attention?id=${rec.id}`}
+                    style={{
+                      flex: 1,
+                      textAlign: "center",
+                      padding: "6px 10px",
+                      borderRadius: 6,
+                      background: "rgba(124, 58, 237, 0.08)",
+                      border: "1px solid rgba(124, 58, 237, 0.2)",
+                      color: "#6D28D9",
+                      fontSize: "0.75rem",
+                      fontWeight: 700,
+                      textDecoration: "none",
+                    }}
+                  >
+                    👁️ Attention
+                  </Link>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
     </div>
   );
 }
