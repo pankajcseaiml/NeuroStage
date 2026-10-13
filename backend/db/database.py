@@ -13,6 +13,10 @@ def _get_engine():
     if db_url.startswith("sqlite"):
         return create_engine(db_url, connect_args={"check_same_thread": False})
 
+    # Normalize postgresql:// to postgresql+psycopg2:// if psycopg2 is used
+    if db_url.startswith("postgresql://") and "+" not in db_url.split("://")[0]:
+        db_url = db_url.replace("postgresql://", "postgresql+psycopg2://", 1)
+
     try:
         eng = create_engine(
             db_url,
