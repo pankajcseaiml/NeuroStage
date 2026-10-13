@@ -171,8 +171,11 @@ NeuroStage/
 │   │   ├── codeql.yml              # Static application security testing (SAST)
 │   │   └── dependency-review.yml   # PR dependency vulnerability review
 │   ├── CODEOWNERS                  # Repository code ownership configuration
+│   ├── CODE_OF_CONDUCT.md          # Contributor Covenant v2.1
+│   ├── CONTRIBUTING.md             # Contributor guidelines
 │   ├── dependabot.yml              # Automated dependency update configuration
-│   └── pull_request_template.md    # Pull request submission checklist
+│   ├── pull_request_template.md    # Pull request submission checklist
+│   └── SECURITY.md                 # Vulnerability disclosure policy
 ├── backend/                        # FastAPI application service
 │   ├── api/                        # REST endpoint routers (eeg, experiments)
 │   ├── auth/                       # JWT authentication and security utilities
@@ -189,6 +192,7 @@ NeuroStage/
 ├── docs/                           # Technical documentation suite
 │   ├── API.md                      # REST API endpoints & schema documentation
 │   ├── ARCHITECTURE.md             # Complete UML diagrams & system architecture
+│   ├── CHANGELOG.md                # Release history and version notes
 │   ├── DEPLOYMENT.md               # Production deployment and container guidance
 │   ├── PANEL_PRESENTATION_GUIDE.md # Technical defense guide & panel Q&A playbook
 │   ├── PROJECT_TECHNICAL_ARCHITECTURE.md # Stack audit and system specification
@@ -221,9 +225,6 @@ NeuroStage/
 │   └── test_model.py               # Model forward-pass & sanity tests
 ├── .env.example                    # Backend environment variables template
 ├── .gitignore                      # Git exclusion rules
-├── CHANGELOG.md                    # Release history and version notes
-├── CODE_OF_CONDUCT.md              # Contributor Covenant v2.1
-├── CONTRIBUTING.md                 # Contributor guidelines
 ├── Dockerfile.backend              # Hardened non-root Dockerfile for backend
 ├── docker-compose.yml              # Full-stack Docker Compose service definition
 ├── LICENSE                         # MIT License
@@ -410,16 +411,16 @@ NeuroStage adheres to a **Zero-Trust Security Model**:
 - **Environment Isolation**: All configuration is managed via `.env` files derived from `.env.example`.
 - **Stateless Authentication**: Protected endpoints require signed JWT bearer tokens with configurable expiration.
 - **Unprivileged Containers**: Docker containers run as unprivileged non-root users (`appuser` in backend, `nextjs` in frontend).
-- **Vulnerability Reporting**: If you discover a vulnerability, please review our [Security Policy](SECURITY.md) and report it confidentially via GitHub Security Advisories.
+- **Vulnerability Reporting**: If you discover a vulnerability, please review our [Security Policy](.github/SECURITY.md) and report it confidentially via GitHub Security Advisories.
 
 ---
 
 ## Community & Contributing
 
 We welcome contributions! Please refer to:
-- [Contributing Guidelines](CONTRIBUTING.md) for branch naming, commit standards, and PR workflows.
-- [Code of Conduct](CODE_OF_CONDUCT.md) for community participation standards.
-- [Changelog](CHANGELOG.md) for version history and release notes.
+- [Contributing Guidelines](.github/CONTRIBUTING.md) for branch naming, commit standards, and PR workflows.
+- [Code of Conduct](.github/CODE_OF_CONDUCT.md) for community participation standards.
+- [Changelog](docs/CHANGELOG.md) for version history and release notes.
 
 ---
 
