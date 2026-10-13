@@ -78,14 +78,28 @@ def _run_inference_job(recording_id: str, edf_path: str, db_url: str) -> None:
 
         result = inf_svc.predict_epochs(epochs)
 
-        # Persist predictions
+        # Persist predictions with proper context-window attention extraction
+        from backend.services.inference import _cfg
+        context_len = _cfg.data.context_epochs if _cfg else 20
+        raw_attns = result.get("attention_weights") or []
         for pred in result["predictions"]:
+            idx = pred["epoch_index"]
             attn = None
-            if result["attention_weights"] and pred["epoch_index"] < len(result["attention_weights"]):
-                attn = {"weights": result["attention_weights"][pred["epoch_index"]]}
+            if raw_attns:
+                win_idx = idx // context_len
+                pos_in_win = idx % context_len
+                if win_idx < len(raw_attns):
+                    win_matrix = raw_attns[win_idx]
+                    if isinstance(win_matrix, list) and pos_in_win < len(win_matrix):
+                        epoch_vec = win_matrix[pos_in_win]
+                        attn = {
+                            "weights": [epoch_vec],
+                            "epoch_weights": epoch_vec,
+                            "context_epochs": len(epoch_vec),
+                        }
             p = Prediction(
                 recording_id=recording_id,
-                epoch_index=pred["epoch_index"],
+                epoch_index=idx,
                 predicted_class=pred["predicted_class"],
                 confidence=pred["confidence"],
                 attention_json=attn,
@@ -190,9 +204,24 @@ def get_attention(
     if not pred:
         raise HTTPException(404, "Prediction not found for this epoch.")
 
+    attn_data = pred.attention_json or {}
+    weights_row = attn_data.get("epoch_weights")
+    if not weights_row and "weights" in attn_data:
+        w = attn_data["weights"]
+        if isinstance(w, list) and len(w) > 0:
+            if isinstance(w[0], list):
+                pos = epoch_index % 20
+                weights_row = w[pos] if pos < len(w) else w[0]
+            elif isinstance(w[0], (int, float)):
+                weights_row = w
+
     return {
         "epoch_index": epoch_index,
         "predicted_class": pred.predicted_class,
         "confidence": pred.confidence,
-        "attention_weights": pred.attention_json,
+        "attention_weights": {
+            "weights": [weights_row] if weights_row else None,
+            "epoch_weights": weights_row,
+            "context_epochs": len(weights_row) if weights_row else 20,
+        } if weights_row else None,
     }

@@ -11,15 +11,14 @@ import {
   Tooltip,
   ResponsiveContainer,
 } from "recharts";
-
-const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+import { API_URL } from "../lib/api";
 
 const STAGE_COLORS: Record<string, string> = {
-  Wake: "#ef4444",
-  N1: "#f97316",
-  N2: "#eab308",
-  N3: "#3b82f6",
-  REM: "#8b5cf6",
+  Wake: "#DC2626",
+  N1: "#EA580C",
+  N2: "#D97706",
+  N3: "#2563EB",
+  REM: "#7C3AED",
 };
 
 const STAGE_INT: Record<string, number> = { Wake: 4, N1: 3, N2: 2, N3: 1, REM: 0 };
@@ -64,15 +63,18 @@ const CustomTooltip = ({ active, payload }: TooltipProps) => {
   const stage = STAGE_FROM_INT[d.stage_level];
   return (
     <div style={{
-      background: "var(--bg-card)",
-      border: "1px solid var(--border)",
-      borderRadius: 10,
-      padding: "10px 14px",
-      fontSize: "0.8rem",
+      background: "#FFFFFF",
+      border: "1px solid #CBD5E1",
+      borderRadius: 12,
+      padding: "12px 16px",
+      fontSize: "0.82rem",
+      boxShadow: "0 4px 16px rgba(15, 23, 42, 0.1)",
     }}>
-      <div style={{ color: STAGE_COLORS[stage], fontWeight: 700, marginBottom: 4 }}>{stage}</div>
-      <div style={{ color: "var(--text-secondary)" }}>Epoch {d.epoch_index}</div>
-      <div style={{ color: "var(--text-secondary)" }}>Time: {formatTime(d.time_start_sec)}</div>
+      <div style={{ color: STAGE_COLORS[stage], fontWeight: 800, fontSize: "0.95rem", marginBottom: 6 }}>
+        {stage}
+      </div>
+      <div style={{ color: "var(--text-secondary)", marginBottom: 2 }}>Epoch {d.epoch_index}</div>
+      <div style={{ color: "var(--text-secondary)", marginBottom: 2 }}>Time: {formatTime(d.time_start_sec)}</div>
       <div style={{ color: "var(--text-secondary)" }}>
         Confidence: <strong style={{ color: "var(--text-primary)" }}>{(d.confidence * 100).toFixed(1)}%</strong>
       </div>
@@ -185,20 +187,20 @@ function HypnogramContent() {
 
   return (
     <div style={{ maxWidth: 1200, margin: "0 auto", padding: "48px 24px" }}>
-      <div style={{ marginBottom: 40 }}>
-        <h1 style={{ fontSize: "2.2rem", fontWeight: 800, marginBottom: 8, letterSpacing: "-0.03em" }}>
+      <div style={{ marginBottom: 36 }}>
+        <h1 style={{ fontSize: "2.2rem", fontWeight: 800, marginBottom: 8, letterSpacing: "-0.03em", color: "var(--text-primary)" }}>
           Hypnogram Viewer
         </h1>
-        <p style={{ color: "var(--text-secondary)", fontSize: "1rem" }}>
+        <p style={{ color: "var(--text-secondary)", fontSize: "1rem", fontWeight: 450 }}>
           Predicted sleep stage sequence across the full recording night.
         </p>
       </div>
 
       {/* Controls Bar */}
       <div className="glass-card" style={{ padding: 24, marginBottom: 32 }}>
-        <div style={{ display: "flex", gap: 12, flexWrap: "wrap", alignItems: "flex-end" }}>
+        <div style={{ display: "flex", gap: 14, flexWrap: "wrap", alignItems: "flex-end" }}>
           <div style={{ flex: 1, minWidth: 240 }}>
-            <label style={{ fontSize: "0.75rem", color: "var(--text-muted)", fontWeight: 500, display: "block", marginBottom: 6 }}>
+            <label style={{ fontSize: "0.75rem", color: "var(--text-muted)", fontWeight: 700, display: "block", marginBottom: 6, textTransform: "uppercase", letterSpacing: "0.05em" }}>
               RECORDING ID
             </label>
             <input
@@ -206,11 +208,12 @@ function HypnogramContent() {
               placeholder="e.g. 4166f4f8-7eed-43d8-..."
               value={recordingId}
               onChange={(e) => setRecordingId(e.target.value)}
+              style={{ width: "100%" }}
             />
           </div>
           <div style={{ flex: 1, minWidth: 240 }}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 6 }}>
-              <label style={{ fontSize: "0.75rem", color: "var(--text-muted)", fontWeight: 500 }}>
+              <label style={{ fontSize: "0.75rem", color: "var(--text-muted)", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.05em" }}>
                 ACCESS TOKEN
               </label>
               <button
@@ -218,13 +221,13 @@ function HypnogramContent() {
                 onClick={generateDemoToken}
                 disabled={generatingToken}
                 style={{
-                  background: "rgba(59,130,246,0.15)",
-                  border: "1px solid rgba(59,130,246,0.3)",
-                  color: "var(--accent-blue)",
+                  background: "rgba(37,99,235,0.08)",
+                  border: "1px solid rgba(37,99,235,0.25)",
+                  color: "#1D4ED8",
                   borderRadius: 6,
-                  padding: "2px 6px",
-                  fontSize: "0.7rem",
-                  fontWeight: 600,
+                  padding: "2px 8px",
+                  fontSize: "0.72rem",
+                  fontWeight: 700,
                   cursor: "pointer",
                 }}
               >
@@ -240,6 +243,7 @@ function HypnogramContent() {
                 setToken(e.target.value);
                 localStorage.setItem("neurostage_jwt_token", e.target.value);
               }}
+              style={{ width: "100%" }}
             />
           </div>
           <button
@@ -253,7 +257,7 @@ function HypnogramContent() {
       </div>
 
       {loading && (
-        <div style={{ textAlign: "center", padding: 60, color: "var(--text-muted)" }}>
+        <div style={{ textAlign: "center", padding: 60, color: "var(--text-muted)", fontWeight: 500 }}>
           ⏳ Loading hypnogram...
         </div>
       )}
@@ -262,9 +266,10 @@ function HypnogramContent() {
         <div style={{
           padding: "16px 20px",
           borderRadius: 12,
-          background: "rgba(244,63,94,0.1)",
-          border: "1px solid rgba(244,63,94,0.3)",
-          color: "#fda4af",
+          background: "rgba(225,29,72,0.08)",
+          border: "1px solid rgba(225,29,72,0.25)",
+          color: "#BE123C",
+          fontWeight: 600,
           marginBottom: 24,
         }}>
           ❌ {error}
@@ -279,12 +284,12 @@ function HypnogramContent() {
               const count = stageCounts[stage] || 0;
               const pct = data.n_epochs > 0 ? (count / data.n_epochs * 100).toFixed(1) : "0";
               return (
-                <div key={stage} className="metric-card" style={{ minWidth: 130 }}>
+                <div key={stage} className="metric-card" style={{ minWidth: 140, flex: 1 }}>
                   <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 4 }}>
                     <div style={{ width: 10, height: 10, borderRadius: "50%", background: color, flexShrink: 0 }} />
-                    <span style={{ fontWeight: 600, fontSize: "0.85rem" }}>{stage}</span>
+                    <span style={{ fontWeight: 700, fontSize: "0.9rem", color: "var(--text-primary)" }}>{stage}</span>
                   </div>
-                  <div className="metric-value" style={{ fontSize: "1.6rem", color }}>{pct}%</div>
+                  <div className="metric-value" style={{ fontSize: "1.8rem", color }}>{pct}%</div>
                   <div className="metric-label">{count} epochs · {(count * 0.5).toFixed(0)} min</div>
                 </div>
               );
@@ -292,54 +297,56 @@ function HypnogramContent() {
           </div>
 
           {/* Hypnogram chart */}
-          <div className="glass-card" style={{ padding: 32, marginBottom: 24 }}>
-            <h2 style={{ fontSize: "1.1rem", fontWeight: 700, marginBottom: 24 }}>
+          <div className="glass-card" style={{ padding: 32, marginBottom: 28 }}>
+            <h2 style={{ fontSize: "1.15rem", fontWeight: 800, marginBottom: 24, color: "var(--text-primary)" }}>
               Predicted Hypnogram — {data.n_epochs} epochs ({(data.n_epochs * 0.5 / 60).toFixed(1)} hours)
             </h2>
             <ResponsiveContainer width="100%" height={280}>
               <AreaChart data={chartData} margin={{ top: 10, right: 20, bottom: 10, left: 20 }}>
                 <defs>
                   <linearGradient id="stageGrad" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.2} />
-                    <stop offset="95%" stopColor="#3b82f6" stopOpacity={0.02} />
+                    <stop offset="5%" stopColor="#2563EB" stopOpacity={0.16} />
+                    <stop offset="95%" stopColor="#2563EB" stopOpacity={0.02} />
                   </linearGradient>
                 </defs>
-                <CartesianGrid strokeDasharray="3 3" stroke="rgba(30,45,69,0.6)" />
+                <CartesianGrid strokeDasharray="3 3" stroke="#E2E8F0" />
                 <XAxis
                   dataKey="time_start_sec"
                   tickFormatter={formatTime}
-                  tick={{ fill: "var(--text-muted)", fontSize: 11 }}
-                  axisLine={{ stroke: "var(--border)" }}
+                  tick={{ fill: "#64748B", fontSize: 11 }}
+                  axisLine={{ stroke: "#E2E8F0" }}
                 />
                 <YAxis
                   domain={[0, 4]}
                   ticks={[0, 1, 2, 3, 4]}
                   tickFormatter={(v) => STAGE_FROM_INT[v]}
-                  tick={{ fill: "var(--text-muted)", fontSize: 11 }}
-                  axisLine={{ stroke: "var(--border)" }}
-                  width={45}
+                  tick={{ fill: "#64748B", fontSize: 11 }}
+                  axisLine={{ stroke: "#E2E8F0" }}
+                  width={48}
                 />
                 <Tooltip content={<CustomTooltip />} />
                 <Area
                   type="stepAfter"
                   dataKey="stage_level"
-                  stroke="#3b82f6"
-                  strokeWidth={2}
+                  stroke="#2563EB"
+                  strokeWidth={2.5}
                   fill="url(#stageGrad)"
                   isAnimationActive={false}
                 />
               </AreaChart>
             </ResponsiveContainer>
-            <p style={{ fontSize: "0.75rem", color: "var(--text-muted)", marginTop: 16, textAlign: "center" }}>
+            <p style={{ fontSize: "0.8rem", color: "var(--text-muted)", marginTop: 16, textAlign: "center", fontWeight: 500 }}>
               Y-axis: deeper sleep at the bottom (REM/N3), wakefulness at the top.
               Each step = one 30-second epoch.
             </p>
           </div>
 
           {/* Epoch table */}
-          <div className="glass-card" style={{ padding: 24 }}>
-            <h2 style={{ fontSize: "1rem", fontWeight: 700, marginBottom: 16 }}>Per-Epoch Predictions</h2>
-            <div style={{ maxHeight: 400, overflowY: "auto" }}>
+          <div className="glass-card" style={{ padding: 24, overflow: "hidden" }}>
+            <h2 style={{ fontSize: "1.05rem", fontWeight: 800, marginBottom: 16, color: "var(--text-primary)" }}>
+              Per-Epoch Predictions
+            </h2>
+            <div style={{ maxHeight: 400, overflowY: "auto", border: "1px solid var(--border)", borderRadius: 10 }}>
               <table className="data-table">
                 <thead>
                   <tr>
@@ -355,21 +362,21 @@ function HypnogramContent() {
                       <td className="code">{e.epoch_index}</td>
                       <td>{formatTime(e.time_start_sec)}</td>
                       <td>
-                        <span style={{ color: STAGE_COLORS[e.stage_name], fontWeight: 600 }}>
+                        <span style={{ color: STAGE_COLORS[e.stage_name], fontWeight: 700 }}>
                           {e.stage_name}
                         </span>
                       </td>
                       <td>
-                        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                          <div style={{ flex: 1, height: 4, background: "var(--border)", borderRadius: 2, maxWidth: 60 }}>
+                        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                          <div style={{ flex: 1, height: 6, background: "#E2E8F0", borderRadius: 3, maxWidth: 80 }}>
                             <div style={{
                               height: "100%",
                               width: `${e.confidence * 100}%`,
                               background: STAGE_COLORS[e.stage_name],
-                              borderRadius: 2,
+                              borderRadius: 3,
                             }} />
                           </div>
-                          <span style={{ fontSize: "0.8rem", color: "var(--text-secondary)" }}>
+                          <span style={{ fontSize: "0.82rem", color: "var(--text-secondary)", fontWeight: 600 }}>
                             {(e.confidence * 100).toFixed(1)}%
                           </span>
                         </div>

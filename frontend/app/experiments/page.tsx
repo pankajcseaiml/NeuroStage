@@ -1,8 +1,7 @@
 "use client";
 
 import { useState } from "react";
-
-const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+import { API_URL } from "../lib/api";
 
 type Experiment = {
   id: string;
@@ -57,20 +56,20 @@ export default function ExperimentsPage() {
 
   return (
     <div style={{ maxWidth: 1200, margin: "0 auto", padding: "48px 24px" }}>
-      <div style={{ marginBottom: 40 }}>
-        <h1 style={{ fontSize: "2.2rem", fontWeight: 800, marginBottom: 8, letterSpacing: "-0.03em" }}>
+      <div style={{ marginBottom: 36 }}>
+        <h1 style={{ fontSize: "2.2rem", fontWeight: 800, marginBottom: 8, letterSpacing: "-0.03em", color: "var(--text-primary)" }}>
           Experiment Log
         </h1>
-        <p style={{ color: "var(--text-secondary)", fontSize: "1rem" }}>
+        <p style={{ color: "var(--text-secondary)", fontSize: "1rem", fontWeight: 450 }}>
           All training runs with metrics, model variants, and efficiency data. Sortable by any column.
         </p>
       </div>
 
       {/* Auth */}
       <div className="glass-card" style={{ padding: 24, marginBottom: 28 }}>
-        <div style={{ display: "flex", gap: 12, alignItems: "flex-end" }}>
+        <div style={{ display: "flex", gap: 14, alignItems: "flex-end" }}>
           <div style={{ flex: 1 }}>
-            <label style={{ fontSize: "0.75rem", color: "var(--text-muted)", fontWeight: 500, display: "block", marginBottom: 6 }}>
+            <label style={{ fontSize: "0.75rem", color: "var(--text-muted)", fontWeight: 700, display: "block", marginBottom: 6, textTransform: "uppercase", letterSpacing: "0.05em" }}>
               ACCESS TOKEN
             </label>
             <input
@@ -79,30 +78,33 @@ export default function ExperimentsPage() {
               placeholder="JWT token"
               value={token}
               onChange={(e) => setToken(e.target.value)}
+              style={{ width: "100%" }}
             />
           </div>
-          <button className="btn-primary" onClick={fetchExperiments}>
+          <button className="btn-primary" onClick={fetchExperiments} style={{ padding: "12px 24px" }}>
             Load Experiments
           </button>
         </div>
       </div>
 
-      {loading && <div style={{ textAlign: "center", padding: 60, color: "var(--text-muted)" }}>⏳ Loading...</div>}
+      {loading && <div style={{ textAlign: "center", padding: 60, color: "var(--text-muted)", fontWeight: 500 }}>⏳ Loading experiments...</div>}
 
       {exps.length === 0 && !loading && (
         <div className="glass-card" style={{ padding: 60, textAlign: "center" }}>
           <div style={{ fontSize: 48, marginBottom: 16 }}>🧪</div>
-          <p style={{ color: "var(--text-muted)", fontSize: "1rem" }}>
-            No experiments found. Run training first:
+          <p style={{ color: "var(--text-secondary)", fontSize: "1rem", fontWeight: 500 }}>
+            No experiments found in database. Run training first:
           </p>
           <code className="code" style={{
-            display: "block",
+            display: "inline-block",
             marginTop: 16,
-            padding: "12px 20px",
-            background: "var(--bg-secondary)",
+            padding: "10px 24px",
+            background: "#F8FAFC",
             borderRadius: 8,
-            color: "var(--accent-blue)",
-            fontSize: "0.875rem",
+            border: "1px solid var(--border)",
+            color: "#2563EB",
+            fontSize: "0.9rem",
+            fontWeight: 600,
           }}>
             python train.py
           </code>
@@ -111,7 +113,7 @@ export default function ExperimentsPage() {
 
       {exps.length > 0 && (
         <>
-          <div style={{ marginBottom: 16, fontSize: "0.875rem", color: "var(--text-muted)" }}>
+          <div style={{ marginBottom: 16, fontSize: "0.875rem", color: "var(--text-muted)", fontWeight: 500 }}>
             Showing {exps.length} of {total} experiments
           </div>
           <div className="glass-card" style={{ padding: 0, overflow: "hidden" }}>
@@ -143,9 +145,9 @@ export default function ExperimentsPage() {
                   {sorted.map((e) => (
                     <tr key={e.id}>
                       <td>
-                        <div style={{ fontWeight: 600, color: "var(--text-primary)" }}>{e.model_variant}</div>
+                        <div style={{ fontWeight: 700, color: "var(--text-primary)" }}>{e.model_variant}</div>
                         {e.mlflow_run_id && (
-                          <div className="code" style={{ fontSize: "0.7rem", color: "var(--text-muted)" }}>
+                          <div className="code" style={{ fontSize: "0.72rem", color: "var(--text-muted)", display: "inline-block", marginTop: 2 }}>
                             {e.mlflow_run_id.slice(0, 8)}…
                           </div>
                         )}
@@ -162,7 +164,7 @@ export default function ExperimentsPage() {
                           <span className="target-badge">N/A</span>
                         )}
                       </td>
-                      <td style={{ fontSize: "0.8rem" }}>
+                      <td style={{ fontSize: "0.82rem", color: "var(--text-secondary)" }}>
                         {new Date(e.created_at).toLocaleDateString()}
                       </td>
                     </tr>

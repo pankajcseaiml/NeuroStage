@@ -38,20 +38,37 @@ DEFAULT_STAGE_MAP = {
 }
 
 STAGE_NAMES = {0: "Wake", 1: "N1", 2: "N2", 3: "N3", 4: "REM"}
-PREFERRED_EEG_CHANNELS = ["EEG Fpz-Cz", "EEG Pz-Oz", "EEG", "Fpz", "Pz"]
+PREFERRED_EEG_CHANNELS = [
+    "eeg fpz-cz", "fpz-cz", "fpz", "eeg pz-oz", "pz-oz", "pz",
+    "eeg c4-a1", "c4-a1", "c4-m1", "eeg c3-a2", "c3-a2", "c3-m2", "eeg"
+]
 
 
 def _select_eeg_channel(raw: mne.io.BaseRaw) -> str:
     """Select the best single EEG channel available in the recording."""
     ch_names = raw.ch_names
+    # 1. Exact match (case-insensitive)
     for preferred in PREFERRED_EEG_CHANNELS:
-        if preferred in ch_names:
-            return preferred
-    # Fallback: first EEG channel
+        for ch in ch_names:
+            if preferred == ch.strip().lower():
+                return ch
+
+    # 2. Substring match
+    for preferred in PREFERRED_EEG_CHANNELS:
+        for ch in ch_names:
+            if preferred in ch.strip().lower():
+                return ch
+
+    # 3. Fallback: MNE-detected EEG channel
     eeg_chs = mne.pick_types(raw.info, eeg=True, exclude=[])
     if len(eeg_chs) > 0:
         return ch_names[eeg_chs[0]]
-    raise ValueError(f"No suitable EEG channel found in {ch_names}")
+
+    # 4. Safe fallback: return the first channel
+    if len(ch_names) > 0:
+        return ch_names[0]
+
+    raise ValueError(f"No channels found in recording: {ch_names}")
 
 
 def preprocess_recording(

@@ -2,11 +2,10 @@
 
 import { Suspense, useCallback, useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
-
-const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+import { API_URL } from "../lib/api";
 
 const STAGE_COLORS: Record<number, string> = {
-  0: "#ef4444", 1: "#f97316", 2: "#eab308", 3: "#3b82f6", 4: "#8b5cf6",
+  0: "#DC2626", 1: "#EA580C", 2: "#D97706", 3: "#2563EB", 4: "#7C3AED",
 };
 const STAGE_NAMES: Record<number, string> = {
   0: "Wake", 1: "N1", 2: "N2", 3: "N3", 4: "REM",
@@ -107,15 +106,27 @@ function AttentionContent() {
     }
   };
 
-  const weights: number[] | null = attnData?.attention_weights?.weights?.[epochIndex] ?? null;
+  const rawAttn = attnData?.attention_weights as { weights?: number[][] | number[]; epoch_weights?: number[] } | undefined;
+  let weights: number[] | null = null;
+  if (rawAttn) {
+    if (Array.isArray(rawAttn.epoch_weights)) {
+      weights = rawAttn.epoch_weights;
+    } else if (Array.isArray(rawAttn.weights)) {
+      if (Array.isArray(rawAttn.weights[0])) {
+        weights = rawAttn.weights[0] as number[];
+      } else if (typeof rawAttn.weights[0] === "number") {
+        weights = rawAttn.weights as number[];
+      }
+    }
+  }
 
   return (
     <div style={{ maxWidth: 1100, margin: "0 auto", padding: "48px 24px" }}>
-      <div style={{ marginBottom: 40 }}>
-        <h1 style={{ fontSize: "2.2rem", fontWeight: 800, marginBottom: 8, letterSpacing: "-0.03em" }}>
+      <div style={{ marginBottom: 36 }}>
+        <h1 style={{ fontSize: "2.2rem", fontWeight: 800, marginBottom: 8, letterSpacing: "-0.03em", color: "var(--text-primary)" }}>
           Attention Visualization
         </h1>
-        <p style={{ color: "var(--text-secondary)", fontSize: "1rem", maxWidth: 680 }}>
+        <p style={{ color: "var(--text-secondary)", fontSize: "1rem", maxWidth: 680, fontWeight: 450 }}>
           The Transformer&apos;s last-layer attention weights show which other epochs in the context window
           influenced the prediction for the selected epoch.
         </p>
@@ -123,9 +134,9 @@ function AttentionContent() {
 
       {/* Controls */}
       <div className="glass-card" style={{ padding: 28, marginBottom: 32 }}>
-        <div style={{ display: "flex", gap: 12, flexWrap: "wrap", alignItems: "flex-end" }}>
+        <div style={{ display: "flex", gap: 14, flexWrap: "wrap", alignItems: "flex-end" }}>
           <div style={{ flex: 1, minWidth: 200 }}>
-            <label style={{ fontSize: "0.75rem", color: "var(--text-muted)", fontWeight: 500, display: "block", marginBottom: 6 }}>
+            <label style={{ fontSize: "0.75rem", color: "var(--text-muted)", fontWeight: 700, display: "block", marginBottom: 6, textTransform: "uppercase", letterSpacing: "0.05em" }}>
               RECORDING ID
             </label>
             <input
@@ -133,11 +144,12 @@ function AttentionContent() {
               placeholder="e.g. abc123..."
               value={localId}
               onChange={(e) => setLocalId(e.target.value)}
+              style={{ width: "100%" }}
             />
           </div>
           <div style={{ flex: 1, minWidth: 200 }}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 6 }}>
-              <label style={{ fontSize: "0.75rem", color: "var(--text-muted)", fontWeight: 500 }}>
+              <label style={{ fontSize: "0.75rem", color: "var(--text-muted)", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.05em" }}>
                 JWT TOKEN
               </label>
               <button
@@ -145,13 +157,13 @@ function AttentionContent() {
                 onClick={generateDemoToken}
                 disabled={generatingToken}
                 style={{
-                  background: "rgba(59,130,246,0.15)",
-                  border: "1px solid rgba(59,130,246,0.3)",
-                  color: "var(--accent-blue)",
+                  background: "rgba(37,99,235,0.08)",
+                  border: "1px solid rgba(37,99,235,0.25)",
+                  color: "#1D4ED8",
                   borderRadius: 6,
-                  padding: "2px 6px",
-                  fontSize: "0.7rem",
-                  fontWeight: 600,
+                  padding: "2px 8px",
+                  fontSize: "0.72rem",
+                  fontWeight: 700,
                   cursor: "pointer",
                 }}
               >
@@ -167,10 +179,11 @@ function AttentionContent() {
                 setLocalToken(e.target.value);
                 localStorage.setItem("neurostage_jwt_token", e.target.value);
               }}
+              style={{ width: "100%" }}
             />
           </div>
           <div style={{ minWidth: 140 }}>
-            <label style={{ fontSize: "0.75rem", color: "var(--text-muted)", fontWeight: 500, display: "block", marginBottom: 6 }}>
+            <label style={{ fontSize: "0.75rem", color: "var(--text-muted)", fontWeight: 700, display: "block", marginBottom: 6, textTransform: "uppercase", letterSpacing: "0.05em" }}>
               EPOCH INDEX
             </label>
             <input
@@ -179,20 +192,21 @@ function AttentionContent() {
               min={0}
               value={epochIndex}
               onChange={(e) => setEpochIndex(parseInt(e.target.value) || 0)}
+              style={{ width: "100%" }}
             />
           </div>
-          <button className="btn-primary" onClick={fetchAttention}>
+          <button className="btn-primary" onClick={fetchAttention} style={{ padding: "12px 24px" }}>
             Load
           </button>
         </div>
       </div>
 
-      {loading && <div style={{ textAlign: "center", padding: 60, color: "var(--text-muted)" }}>⏳ Loading...</div>}
+      {loading && <div style={{ textAlign: "center", padding: 60, color: "var(--text-muted)", fontWeight: 500 }}>⏳ Loading attention weights...</div>}
       {error && (
         <div style={{
-          padding: "14px 18px", borderRadius: 10,
-          background: "rgba(244,63,94,0.1)", border: "1px solid rgba(244,63,94,0.3)",
-          color: "#fda4af", marginBottom: 24, fontSize: "0.875rem",
+          padding: "16px 20px", borderRadius: 12,
+          background: "rgba(225,29,72,0.08)", border: "1px solid rgba(225,29,72,0.25)",
+          color: "#BE123C", marginBottom: 24, fontSize: "0.875rem", fontWeight: 600,
         }}>
           ❌ {error}
         </div>
@@ -202,44 +216,44 @@ function AttentionContent() {
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 24 }}>
           {/* Prediction info */}
           <div className="glass-card" style={{ padding: 28 }}>
-            <h2 style={{ fontSize: "1rem", fontWeight: 700, marginBottom: 20 }}>Prediction at Epoch {epochIndex}</h2>
+            <h2 style={{ fontSize: "1.05rem", fontWeight: 800, marginBottom: 20, color: "var(--text-primary)" }}>Prediction at Epoch {epochIndex}</h2>
             <div style={{
-              padding: "20px",
-              borderRadius: 12,
-              background: `${STAGE_COLORS[attnData.predicted_class]}15`,
-              border: `1px solid ${STAGE_COLORS[attnData.predicted_class]}40`,
+              padding: "24px 20px",
+              borderRadius: 14,
+              background: `${STAGE_COLORS[attnData.predicted_class]}0C`,
+              border: `1px solid ${STAGE_COLORS[attnData.predicted_class]}30`,
               marginBottom: 20,
               textAlign: "center",
             }}>
-              <div style={{ fontSize: "0.75rem", color: "var(--text-muted)", fontWeight: 600, letterSpacing: "0.08em", textTransform: "uppercase", marginBottom: 8 }}>
+              <div style={{ fontSize: "0.75rem", color: "var(--text-muted)", fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase", marginBottom: 8 }}>
                 Predicted Stage
               </div>
-              <div style={{ fontSize: "2.5rem", fontWeight: 800, color: STAGE_COLORS[attnData.predicted_class] }}>
+              <div style={{ fontSize: "2.6rem", fontWeight: 900, color: STAGE_COLORS[attnData.predicted_class], letterSpacing: "-0.03em" }}>
                 {STAGE_NAMES[attnData.predicted_class]}
               </div>
-              <div style={{ fontSize: "1rem", color: "var(--text-secondary)", marginTop: 8 }}>
-                Confidence: <strong style={{ color: "var(--text-primary)" }}>
+              <div style={{ fontSize: "1rem", color: "var(--text-secondary)", marginTop: 8, fontWeight: 500 }}>
+                Confidence: <strong style={{ color: "var(--text-primary)", fontWeight: 800 }}>
                   {(attnData.confidence * 100).toFixed(1)}%
                 </strong>
               </div>
             </div>
             <div>
-              <p style={{ fontSize: "0.8rem", color: "var(--text-muted)", lineHeight: 1.7 }}>
+              <p style={{ fontSize: "0.84rem", color: "var(--text-secondary)", lineHeight: 1.65, fontWeight: 450 }}>
                 The heatmap (right) shows how much the Transformer attended to each of the{" "}
                 <strong style={{ color: "var(--text-primary)" }}>preceding epochs</strong> when
-                classifying this epoch. Brighter = more attention.
+                classifying this epoch. Darker/richer blue = higher attention weight.
               </p>
             </div>
           </div>
 
           {/* Attention heatmap */}
           <div className="glass-card" style={{ padding: 28 }}>
-            <h2 style={{ fontSize: "1rem", fontWeight: 700, marginBottom: 20 }}>
+            <h2 style={{ fontSize: "1.05rem", fontWeight: 800, marginBottom: 20, color: "var(--text-primary)" }}>
               Attention Weights (Last Transformer Layer)
             </h2>
             {weights ? (
               <div>
-                <div style={{ display: "flex", gap: 4, flexWrap: "wrap", marginBottom: 16 }}>
+                <div style={{ display: "flex", gap: 5, flexWrap: "wrap", marginBottom: 20 }}>
                   {weights.map((w, i) => {
                     const maxW = Math.max(...weights);
                     const intensity = maxW > 0 ? w / maxW : 0;
@@ -248,20 +262,21 @@ function AttentionContent() {
                         key={i}
                         title={`Epoch ${i}: ${(w * 100).toFixed(2)}%`}
                         style={{
-                          width: 28,
-                          height: 28,
-                          borderRadius: 4,
-                          background: `rgba(59, 130, 246, ${0.1 + intensity * 0.9})`,
-                          border: `1px solid rgba(59, 130, 246, ${0.2 + intensity * 0.4})`,
+                          width: 30,
+                          height: 30,
+                          borderRadius: 6,
+                          background: `rgba(37, 99, 235, ${0.08 + intensity * 0.85})`,
+                          border: `1px solid rgba(37, 99, 235, ${0.15 + intensity * 0.5})`,
                           display: "flex",
                           alignItems: "center",
                           justifyContent: "center",
-                          fontSize: "0.55rem",
-                          color: intensity > 0.6 ? "white" : "var(--text-muted)",
+                          fontSize: "0.62rem",
+                          fontWeight: 700,
+                          color: intensity > 0.5 ? "#FFFFFF" : "#1E293B",
                           cursor: "help",
-                          transition: "transform 0.15s",
+                          transition: "all 0.15s ease",
                         }}
-                        onMouseEnter={(e) => (e.currentTarget.style.transform = "scale(1.3)")}
+                        onMouseEnter={(e) => (e.currentTarget.style.transform = "scale(1.2)")}
                         onMouseLeave={(e) => (e.currentTarget.style.transform = "scale(1)")}
                       >
                         {i}
@@ -270,22 +285,22 @@ function AttentionContent() {
                   })}
                 </div>
                 {/* Top attended epochs */}
-                <div style={{ marginTop: 16 }}>
-                  <div style={{ fontSize: "0.75rem", color: "var(--text-muted)", fontWeight: 600, letterSpacing: "0.06em", textTransform: "uppercase", marginBottom: 10 }}>
+                <div style={{ marginTop: 20 }}>
+                  <div style={{ fontSize: "0.75rem", color: "var(--text-muted)", fontWeight: 700, letterSpacing: "0.06em", textTransform: "uppercase", marginBottom: 12 }}>
                     Most Attended Epochs
                   </div>
                   {[...weights.map((w, i) => ({ w, i }))].sort((a, b) => b.w - a.w).slice(0, 5).map(({ w, i }) => (
-                    <div key={i} style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 8 }}>
-                      <span className="code" style={{ fontSize: "0.8rem", color: "var(--text-muted)", width: 28 }}>E{i}</span>
-                      <div style={{ flex: 1, height: 6, background: "var(--border)", borderRadius: 3 }}>
+                    <div key={i} style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 10 }}>
+                      <span className="code" style={{ fontSize: "0.8rem", width: 34, textAlign: "center" }}>E{i}</span>
+                      <div style={{ flex: 1, height: 7, background: "#E2E8F0", borderRadius: 4 }}>
                         <div style={{
                           height: "100%",
                           width: `${(w / Math.max(...weights)) * 100}%`,
-                          background: "var(--gradient-accent)",
-                          borderRadius: 3,
+                          background: "linear-gradient(90deg, #E14D45, #EA580C)",
+                          borderRadius: 4,
                         }} />
                       </div>
-                      <span style={{ fontSize: "0.8rem", color: "var(--text-secondary)", width: 40, textAlign: "right" }}>
+                      <span style={{ fontSize: "0.84rem", color: "var(--text-primary)", fontWeight: 700, width: 48, textAlign: "right" }}>
                         {(w * 100).toFixed(1)}%
                       </span>
                     </div>

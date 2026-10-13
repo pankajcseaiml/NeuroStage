@@ -10,8 +10,7 @@ import {
   Tooltip,
   ResponsiveContainer,
 } from "recharts";
-
-const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+import { API_URL } from "../lib/api";
 
 type BenchmarkModel = {
   model: string;
@@ -27,21 +26,21 @@ type BenchmarkModel = {
 };
 
 const MODEL_COLORS: Record<string, string> = {
-  DeepSleepNet: "#ef4444",
-  TinySleepNet: "#f97316",
-  AttnSleep: "#eab308",
-  neurostage: "#3b82f6",
-  neurostage_base: "#3b82f6",
-  ablation_cnn_only: "#06b6d4",
-  ablation_transformer_1l: "#8b5cf6",
-  ablation_transformer_4l: "#a855f7",
+  DeepSleepNet: "#DC2626",
+  TinySleepNet: "#EA580C",
+  AttnSleep: "#D97706",
+  neurostage: "#2563EB",
+  neurostage_base: "#2563EB",
+  ablation_cnn_only: "#0891B2",
+  ablation_transformer_1l: "#7C3AED",
+  ablation_transformer_4l: "#9333EA",
 };
 
 function getColor(name: string) {
   for (const [key, color] of Object.entries(MODEL_COLORS)) {
     if (name.toLowerCase().includes(key.toLowerCase())) return color;
   }
-  return "#64748b";
+  return "#64748B";
 }
 
 type CompareTooltipProps = {
@@ -56,20 +55,21 @@ const CustomTooltip = ({ active, payload }: CompareTooltipProps) => {
   const d = payload[0].payload;
   return (
     <div style={{
-      background: "var(--bg-card)",
-      border: "1px solid var(--border)",
-      borderRadius: 10,
-      padding: "12px 16px",
-      fontSize: "0.8rem",
-      maxWidth: 260,
+      background: "#FFFFFF",
+      border: "1px solid #CBD5E1",
+      borderRadius: 12,
+      padding: "14px 18px",
+      fontSize: "0.82rem",
+      maxWidth: 270,
+      boxShadow: "0 4px 16px rgba(15, 23, 42, 0.1)",
     }}>
-      <div style={{ fontWeight: 700, color: getColor(d.model), marginBottom: 8 }}>{d.model}</div>
-      <div style={{ color: "var(--text-secondary)" }}>Accuracy: <strong style={{ color: "var(--text-primary)" }}>{d.accuracy != null ? `${(d.accuracy * 100).toFixed(1)}%` : "—"}</strong></div>
-      <div style={{ color: "var(--text-secondary)" }}>Macro-F1: <strong style={{ color: "var(--text-primary)" }}>{d.macro_f1 != null ? (d.macro_f1).toFixed(3) : "—"}</strong></div>
-      <div style={{ color: "var(--text-secondary)" }}>Params: <strong style={{ color: "var(--text-primary)" }}>{d.param_count != null ? `${(d.param_count / 1000).toFixed(0)}K` : "—"}</strong></div>
-      <div style={{ color: "var(--text-secondary)" }}>Size: <strong style={{ color: "var(--text-primary)" }}>{d.model_size_mb != null ? `${d.model_size_mb.toFixed(1)} MB` : "—"}</strong></div>
-      <div style={{ color: "var(--text-muted)", marginTop: 8, fontSize: "0.75rem" }}>{d.source}</div>
-      {d.note && <div style={{ color: "var(--stage-n1)", fontSize: "0.7rem", marginTop: 4 }}>ℹ️ {d.note}</div>}
+      <div style={{ fontWeight: 800, fontSize: "0.95rem", color: getColor(d.model), marginBottom: 8 }}>{d.model}</div>
+      <div style={{ color: "var(--text-secondary)", marginBottom: 3 }}>Accuracy: <strong style={{ color: "var(--text-primary)" }}>{d.accuracy != null ? `${(d.accuracy * 100).toFixed(1)}%` : "—"}</strong></div>
+      <div style={{ color: "var(--text-secondary)", marginBottom: 3 }}>Macro-F1: <strong style={{ color: "var(--text-primary)" }}>{d.macro_f1 != null ? (d.macro_f1).toFixed(3) : "—"}</strong></div>
+      <div style={{ color: "var(--text-secondary)", marginBottom: 3 }}>Params: <strong style={{ color: "var(--text-primary)" }}>{d.param_count != null ? `${(d.param_count / 1000).toFixed(0)}K` : "—"}</strong></div>
+      <div style={{ color: "var(--text-secondary)", marginBottom: 3 }}>Size: <strong style={{ color: "var(--text-primary)" }}>{d.model_size_mb != null ? `${d.model_size_mb.toFixed(1)} MB` : "—"}</strong></div>
+      <div style={{ color: "var(--text-muted)", marginTop: 8, fontSize: "0.74rem" }}>{d.source}</div>
+      {d.note && <div style={{ color: "#D97706", fontSize: "0.72rem", marginTop: 4, fontWeight: 600 }}>ℹ️ {d.note}</div>}
     </div>
   );
 };
@@ -104,11 +104,11 @@ export default function ComparePage() {
 
   return (
     <div style={{ maxWidth: 1200, margin: "0 auto", padding: "48px 24px" }}>
-      <div style={{ marginBottom: 40 }}>
-        <h1 style={{ fontSize: "2.2rem", fontWeight: 800, marginBottom: 8, letterSpacing: "-0.03em" }}>
+      <div style={{ marginBottom: 36 }}>
+        <h1 style={{ fontSize: "2.2rem", fontWeight: 800, marginBottom: 8, letterSpacing: "-0.03em", color: "var(--text-primary)" }}>
           Model Comparison Dashboard
         </h1>
-        <p style={{ color: "var(--text-secondary)", fontSize: "1rem", maxWidth: 720 }}>
+        <p style={{ color: "var(--text-secondary)", fontSize: "1rem", maxWidth: 720, fontWeight: 450 }}>
           NeuroStage variants vs. published baselines — accuracy, macro-F1, parameter count, and latency.
           This scatter plot is the core research output of the project.
         </p>
@@ -116,14 +116,15 @@ export default function ComparePage() {
 
       {/* Important labeling notice */}
       <div style={{
-        padding: "16px 20px",
-        borderRadius: 12,
-        background: "rgba(245,158,11,0.08)",
-        border: "1px solid rgba(245,158,11,0.25)",
+        padding: "16px 22px",
+        borderRadius: 14,
+        background: "rgba(217, 119, 6, 0.08)",
+        border: "1px solid rgba(217, 119, 6, 0.25)",
         marginBottom: 32,
         fontSize: "0.875rem",
-        color: "#fcd34d",
-        lineHeight: 1.7,
+        color: "#92400E",
+        lineHeight: 1.65,
+        fontWeight: 500,
       }}>
         ⚠️ <strong>Data Integrity Notice:</strong> Baseline values (DeepSleepNet, TinySleepNet, AttnSleep)
         are published results from papers — not measured in this repository. NeuroStage values are
@@ -131,19 +132,19 @@ export default function ComparePage() {
         clear labeling would be a research ethics violation. {benchmarks?.note}
       </div>
 
-      {loading && <div style={{ textAlign: "center", padding: 60, color: "var(--text-muted)" }}>⏳ Loading...</div>}
+      {loading && <div style={{ textAlign: "center", padding: 60, color: "var(--text-muted)", fontWeight: 500 }}>⏳ Loading benchmarks...</div>}
 
       {benchmarks && (
         <>
           {/* X-axis selector */}
-          <div style={{ display: "flex", gap: 8, marginBottom: 24, flexWrap: "wrap" }}>
-            <span style={{ color: "var(--text-muted)", fontSize: "0.85rem", alignSelf: "center" }}>X-axis:</span>
+          <div style={{ display: "flex", gap: 10, marginBottom: 24, flexWrap: "wrap", alignItems: "center" }}>
+            <span style={{ color: "var(--text-secondary)", fontSize: "0.85rem", fontWeight: 600 }}>X-axis metric:</span>
             {(["param_count", "model_size_mb", "latency_ms"] as const).map((key) => (
               <button
                 key={key}
                 className={xAxis === key ? "btn-primary" : "btn-secondary"}
                 onClick={() => setXAxis(key)}
-                style={{ padding: "8px 16px", fontSize: "0.8rem" }}
+                style={{ padding: "8px 18px", fontSize: "0.82rem" }}
               >
                 {X_AXIS_LABELS[key]}
               </button>
@@ -152,34 +153,34 @@ export default function ComparePage() {
 
           {/* Scatter chart */}
           <div className="glass-card" style={{ padding: 32, marginBottom: 32 }}>
-            <h2 style={{ fontSize: "1rem", fontWeight: 700, marginBottom: 8 }}>
+            <h2 style={{ fontSize: "1.1rem", fontWeight: 800, marginBottom: 6, color: "var(--text-primary)" }}>
               Accuracy vs. {X_AXIS_LABELS[xAxis]}
             </h2>
-            <p style={{ fontSize: "0.8rem", color: "var(--text-muted)", marginBottom: 24 }}>
-              Upper-left = better (high accuracy, low cost). That&apos;s where NeuroStage aims to be.
+            <p style={{ fontSize: "0.82rem", color: "var(--text-muted)", marginBottom: 24, fontWeight: 500 }}>
+              Upper-left = optimal frontier (higher accuracy, lower computational cost).
             </p>
             {scatterData.length > 0 ? (
               <ResponsiveContainer width="100%" height={380}>
                 <ScatterChart margin={{ top: 20, right: 30, bottom: 20, left: 20 }}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="rgba(30,45,69,0.6)" />
+                  <CartesianGrid strokeDasharray="3 3" stroke="#E2E8F0" />
                   <XAxis
                     type="number"
                     dataKey={xAxis}
                     name={X_AXIS_LABELS[xAxis]}
-                    tick={{ fill: "var(--text-muted)", fontSize: 11 }}
+                    tick={{ fill: "#64748B", fontSize: 11 }}
                     tickFormatter={(v) => xAxis === "param_count" ? `${(v / 1000).toFixed(0)}K` : v.toFixed(1)}
-                    axisLine={{ stroke: "var(--border)" }}
-                    label={{ value: X_AXIS_LABELS[xAxis], position: "insideBottom", offset: -10, fill: "var(--text-muted)", fontSize: 12 }}
+                    axisLine={{ stroke: "#E2E8F0" }}
+                    label={{ value: X_AXIS_LABELS[xAxis], position: "insideBottom", offset: -10, fill: "#475569", fontSize: 12, fontWeight: 600 }}
                   />
                   <YAxis
                     type="number"
                     dataKey="accuracy"
                     name="Accuracy"
                     domain={[0.7, 1.0]}
-                    tick={{ fill: "var(--text-muted)", fontSize: 11 }}
+                    tick={{ fill: "#64748B", fontSize: 11 }}
                     tickFormatter={(v) => `${(v * 100).toFixed(0)}%`}
-                    axisLine={{ stroke: "var(--border)" }}
-                    label={{ value: "Accuracy", angle: -90, position: "insideLeft", fill: "var(--text-muted)", fontSize: 12 }}
+                    axisLine={{ stroke: "#E2E8F0" }}
+                    label={{ value: "Accuracy", angle: -90, position: "insideLeft", fill: "#475569", fontSize: 12, fontWeight: 600 }}
                   />
                   <Tooltip content={<CustomTooltip />} />
                   {scatterData.map((m) => (
@@ -197,11 +198,11 @@ export default function ComparePage() {
                               cx={cx} cy={cy}
                               r={isNeuroStage ? 12 : 9}
                               fill={getColor(m.model)}
-                              fillOpacity={isNeuroStage ? 1 : 0.7}
-                              stroke={isNeuroStage ? "white" : "none"}
-                              strokeWidth={isNeuroStage ? 2 : 0}
+                              fillOpacity={isNeuroStage ? 1 : 0.8}
+                              stroke="#FFFFFF"
+                              strokeWidth={2}
                             />
-                            <text x={cx + 14} y={cy + 4} fill="var(--text-secondary)" fontSize={11}>
+                            <text x={cx + 14} y={cy + 4} fill="#1E293B" fontSize={11} fontWeight={600}>
                               {m.model.length > 15 ? m.model.slice(0, 15) + "…" : m.model}
                             </text>
                           </g>
@@ -219,11 +220,11 @@ export default function ComparePage() {
           </div>
 
           {/* Table */}
-          <div className="glass-card" style={{ padding: 28 }}>
-            <h2 style={{ fontSize: "1rem", fontWeight: 700, marginBottom: 20 }}>
+          <div className="glass-card" style={{ padding: 28, overflow: "hidden" }}>
+            <h2 style={{ fontSize: "1.1rem", fontWeight: 800, marginBottom: 20, color: "var(--text-primary)" }}>
               Full Comparison Table
             </h2>
-            <div style={{ overflowX: "auto" }}>
+            <div style={{ overflowX: "auto", border: "1px solid var(--border)", borderRadius: 10 }}>
               <table className="data-table">
                 <thead>
                   <tr>
@@ -241,13 +242,13 @@ export default function ComparePage() {
                   {allModels.map((m) => (
                     <tr key={m.model}>
                       <td>
-                        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                          <div style={{ width: 8, height: 8, borderRadius: "50%", background: getColor(m.model), flexShrink: 0 }} />
-                          <span style={{ fontWeight: 600, color: "var(--text-primary)" }}>{m.model}</span>
+                        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                          <div style={{ width: 9, height: 9, borderRadius: "50%", background: getColor(m.model), flexShrink: 0 }} />
+                          <span style={{ fontWeight: 700, color: "var(--text-primary)" }}>{m.model}</span>
                           {m.note && <span title={m.note} style={{ cursor: "help", fontSize: "0.75rem" }}>ℹ️</span>}
                         </div>
                       </td>
-                      <td>{m.accuracy != null ? `${(m.accuracy * 100).toFixed(1)}%` : "—"}</td>
+                      <td>{m.accuracy != null ? <strong>{(m.accuracy * 100).toFixed(1)}%</strong> : "—"}</td>
                       <td>{m.macro_f1 != null ? m.macro_f1.toFixed(3) : "—"}</td>
                       <td>{m.kappa != null ? m.kappa.toFixed(3) : "—"}</td>
                       <td>{m.param_count != null ? `${(m.param_count / 1000).toFixed(0)}K` : "—"}</td>
@@ -259,7 +260,7 @@ export default function ComparePage() {
                           <span className="target-badge">Not measured</span>
                         )}
                       </td>
-                      <td style={{ fontSize: "0.75rem", color: "var(--text-muted)" }}>{m.source}</td>
+                      <td style={{ fontSize: "0.78rem", color: "var(--text-muted)" }}>{m.source}</td>
                     </tr>
                   ))}
                 </tbody>

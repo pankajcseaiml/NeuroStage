@@ -26,6 +26,12 @@ class TokenResponse(BaseModel):
     token_type: str = "bearer"
 
 
+class UserResponse(BaseModel):
+    id: str
+    email: str
+    role: str
+
+
 @router.post("/register", status_code=status.HTTP_201_CREATED)
 def register(req: RegisterRequest, db: Session = Depends(get_db)):
     if db.query(User).filter(User.email == req.email).first():
@@ -57,3 +63,8 @@ async def get_current_user(
     if not user:
         raise HTTPException(status_code=401, detail="User not found.")
     return user
+
+
+@router.get("/me", response_model=UserResponse)
+def get_me(current_user: User = Depends(get_current_user)):
+    return UserResponse(id=current_user.id, email=current_user.email, role=current_user.role)
