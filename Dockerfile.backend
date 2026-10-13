@@ -7,14 +7,14 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     gcc g++ libpq-dev curl \
     && rm -rf /var/lib/apt/lists/*
 
-# Install Python dependencies
+# Copy project configuration and code
 COPY pyproject.toml ./
-RUN pip install --no-cache-dir -e ".[backend]"
-
-# Copy application code
 COPY neurostage/ ./neurostage/
 COPY backend/ ./backend/
 COPY configs/ ./configs/
+
+# Install Python dependencies
+RUN pip install --no-cache-dir ".[backend]"
 
 # Create unprivileged application user and runtime directories
 RUN useradd -m -u 10001 -s /bin/bash appuser && \

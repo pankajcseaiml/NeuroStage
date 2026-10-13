@@ -39,7 +39,7 @@ services:
     command: >
       bash -c "pip install mlflow psycopg2-binary -q &&
                mlflow server
-               --backend-store-uri postgresql://neurostage:neurostage@postgres:5432/mlflow
+               --backend-store-uri postgresql://neurostage:neurostage@postgres:5432/neurostage
                --default-artifact-root /mlflow/artifacts
                --host 0.0.0.0
                --port 5000"
@@ -68,7 +68,7 @@ services:
       - ./data:/app/data
       - ./uploads:/app/uploads
     environment:
-      DATABASE_URL: postgresql://neurostage:neurostage@postgres:5432/neurostage
+      DATABASE_URL: postgresql+psycopg2://neurostage:neurostage@postgres:5432/neurostage
       MLFLOW_TRACKING_URI: http://mlflow:5000
       MODEL_CHECKPOINT: runs/checkpoints/neurostage_base_best.pt
       MODEL_CONFIG_PATH: configs/base.yaml
