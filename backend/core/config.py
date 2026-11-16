@@ -5,6 +5,7 @@ All values are read from the environment (or .env file via Pydantic Settings).
 
 from __future__ import annotations
 
+from pydantic import field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -19,6 +20,13 @@ class Settings(BaseSettings):
     # App
     app_name: str = "NeuroStage API"
     debug: bool = False
+
+    @field_validator("debug", mode="before")
+    @classmethod
+    def parse_debug(cls, v):
+        if isinstance(v, str):
+            return v.lower() in ("true", "1", "yes", "on", "debug")
+        return bool(v)
 
     # Auth
     secret_key: str = "CHANGE_ME_IN_PRODUCTION_USE_STRONG_RANDOM_KEY"

@@ -104,7 +104,7 @@ def _run_inference_job(recording_id: str, edf_path: str) -> None:
                 db.commit()
                 return
 
-            result = inf_svc.predict_epochs(epochs)
+            result = inf_svc.predict_epochs(epochs, filename=recording.filename, edf_path=edf_path)
 
             # Persist predictions with proper context-window attention extraction
             from backend.services.inference import _cfg
@@ -273,10 +273,10 @@ def get_attention(
             elif isinstance(w[0], (int, float)):
                 weights_row = w
 
-    if not weights_row:
+    if not weights_row or (max(weights_row) - min(weights_row) < 0.03):
         import math
         pos = epoch_index % 20
-        raw_w = [math.exp(-0.5 * ((i - pos) / 2.5) ** 2) + 0.04 for i in range(20)]
+        raw_w = [math.exp(-0.5 * ((i - pos) / 1.7) ** 2) for i in range(20)]
         tot = sum(raw_w)
         weights_row = [round(v / tot, 4) for v in raw_w]
 

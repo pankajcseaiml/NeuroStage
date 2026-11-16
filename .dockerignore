@@ -1,0 +1,36 @@
+# Python & Virtualenv
+venv/
+.venv/
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+.coverage
+htmlcov/
+*.egg-info/
+build/
+dist/
+
+# Git
+.git/
+.github/
+.gitignore
+
+# Frontend build artifacts
+frontend/
+
+# Local databases and logs
+*.db
+mlruns/
+mlartifacts/
+*.log
+
+# System / IDE
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
